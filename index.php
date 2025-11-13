@@ -52,22 +52,60 @@
             background-color: #45a049;
         }
 
-        table {
-            border-collapse: collapse;
-            width: 80%;
-            margin: 20px auto;
-            font-family: Arial, sans-serif;
+       table {
+           width: 80%;
+           border-collapse: collapse;
+           margin: 30px auto;
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 10px 12px;
-            text-align: left;
+            padding: 8px;
+            text-align: center;
+            word-wrap: break-word; /* prevent overflow text */
         }
+        /* Specific column widths */
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 20%; /* Ticket ID column */
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 25%; /* Theme column */
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 55%; /* Suggestion column */
+        }
+        
         th {
-            background-color: #f2f2f2;
+            background-color: #f4f4f4;
         }
-        tr:nth-child(even) {
-            background-color: #fafafa;
+        
+        .sentiment-positive {
+            text-align: center;       /* centers the text horizontally */
+            font-size: 1.2em;         /* optional: makes it stand out */
+            font-weight: bold;        /* optional: bold text */
+            padding: 10px;     
+            background-color: #4CAF50; /* green */
+            color: white;
+        }
+        .sentiment-negative {
+            text-align: center;       /* centers the text horizontally */
+            font-size: 1.2em;         /* optional: makes it stand out */
+            font-weight: bold;        /* optional: bold text */
+            padding: 10px;     
+            background-color: #f44336; /* red */
+            color: white;
+        }
+        .sentiment-neutral {
+            text-align: center;       /* centers the text horizontally */
+            font-size: 1.2em;         /* optional: makes it stand out */
+            font-weight: bold;        /* optional: bold text */
+            padding: 10px;     
+            background-color: rgba(97, 145, 236, 1); /* yellow */
+            color: white;
         }
     </style>
 </head>
@@ -102,7 +140,7 @@ if (isset($_POST['upload'])) {
 
 <?php
 if (isset($_POST['upload']) && isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == 0) {
-$apiKey = 'O56TELnKai80V3Ulm1HwzeZSbNmTbqprMuZ1HnF7'; // get from https://dashboard.cohere.com/api-keys
+$apiKey = ''; // get from https://dashboard.cohere.com/api-keys
 $url = "https://api.cohere.ai/v2/chat";
 
 $prompt = "<<<PROMPT
@@ -110,8 +148,8 @@ $prompt = "<<<PROMPT
         tickets, surveys, and in-app interactions. However, manually analyzing this feedback is time-consuming
         and may miss patterns or sentiments that could improve the user experience.
         Your task is to analyze feedback and generate insights Analyze a small set of
-        user feedback (e.g., support tickets or survey responses) Parse the response into structured output: 1.Sentiment: Positive / Neutral / Negative
-        2.Theme: Navigation / Form Design / Performance / Visual Design 3.Suggestion: 'Simplify form layout and add progress indicators'. 
+        user feedback (e.g., support tickets or survey responses) Parse the response into structured output: 1. Actual feedback text from the ticket 2.Sentiment: Positive / Neutral / Negative
+        3.Theme: Navigation / Form Design / Performance / Visual Design 4 .Suggestion: 'Simplify form layout and add progress indicators'.  
         Give me the entire output in JSON format. Do not give any other explanations.Remove the backticks and 'json' text in the output.
                  
        $feedbackText
@@ -146,21 +184,17 @@ $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-//echo "<pre>HTTP Code: $httpCode\n</pre>";
-//echo "<pre>Raw Response:\n$response\n</pre>";
-
 $responseText = json_decode($response, true);
-//var_dump($responseText['message']['content'][0]['text']);
-
-//echo "<pre>" . $responseText['message']['content'][0]['text'] . "</pre>";
 
 $responseMessage = $responseText['message']['content'][0]['text'];
 
-//var_dump($responseMessage);
+
 $data = json_decode($responseMessage, true);
+var_dump($data);
 ?>
 
-<!DOCTYPE html>
+
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -168,23 +202,46 @@ $data = json_decode($responseMessage, true);
 </head>
 <body>
 
-<table>
-    <tr>
-        <th>Ticket ID</th>
-        <th>Sentiment</th>
-        <th>Theme</th>
-        <th>Suggestion</th>
-    </tr>
+<?php
+// Group data by sentiment
+$groupedData = [];
+foreach ($data as $ticketId => $item) {
+    $sentiment = $item['Sentiment'];
+    $groupedData[$sentiment][$ticketId] = $item;
+}
+?>
 
-    <?php foreach ($data as $ticketId => $item): ?>
-        <tr>
-            <td><?= htmlspecialchars($ticketId) ?></td>
-            <td><?= htmlspecialchars($item['Sentiment']) ?></td>
-            <td><?= htmlspecialchars($item['Theme']) ?></td>
-            <td><?= htmlspecialchars($item['Suggestion']) ?></td>
+<?php foreach ($groupedData as $sentiment => $tickets): ?>
+    <?php
+        // Determine sentiment color class
+        $sentimentClass = '';
+
+        if ($sentiment == 'Positive') {
+            $sentimentClass = 'sentiment-positive';
+        } elseif ($sentiment == 'Negative' ) {
+            $sentimentClass = 'sentiment-negative';
+        } else {
+            $sentimentClass = 'sentiment-neutral';
+        }
+    ?>
+    <table>
+         <tr>
+            <th colspan="3" class='<?php echo $sentimentClass ?>'><?= htmlspecialchars($sentiment) ?></th>
         </tr>
-    <?php endforeach; }?>
-</table>
+        <tr>
+            <th>Ticket ID</th>
+            <th>Theme</th>
+            <th>Suggestion</th>
+        </tr>
 
+        <?php foreach ($tickets as $ticketId => $item): ?>
+            <tr>
+                <td><?= htmlspecialchars($ticketId) ?></td>
+                <td><?= htmlspecialchars($item['Theme']) ?></td>
+                <td><?= htmlspecialchars($item['Suggestion']) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endforeach; } ?>
 </body>
 </html>
