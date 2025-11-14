@@ -1,3 +1,14 @@
+<?php
+require 'vendor/autoload.php';
+use Dotenv\Dotenv;
+
+// Load .env (optional)
+if (file_exists(__DIR__ . '/.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+}
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -102,7 +113,7 @@ if (isset($_POST['upload'])) {
 
 <?php
 if (isset($_POST['upload']) && isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == 0) {
-$apiKey = '';
+$apiKey = $_ENV['AZURE_API_KEY'] ?? getenv('AZURE_API_KEY');
 $endpoint = "https://aarif-mhygl3n5-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-5-chat/chat/completions?api-version=2025-01-01-preview";
 
 $prompt = "<<<PROMPT
