@@ -66,17 +66,21 @@
         /* Specific column widths */
         th:nth-child(1),
         td:nth-child(1) {
-            width: 20%; /* Ticket ID column */
+            width: 10%; /* Ticket ID column */
         }
 
         th:nth-child(2),
         td:nth-child(2) {
-            width: 25%; /* Theme column */
+            width: 35%; /* Theme column */
         }
 
         th:nth-child(3),
         td:nth-child(3) {
-            width: 55%; /* Suggestion column */
+            width: 15%; /* Suggestion column */
+        }
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 40%; /* Suggestion column */
         }
         
         th {
@@ -140,7 +144,7 @@ if (isset($_POST['upload'])) {
 
 <?php
 if (isset($_POST['upload']) && isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == 0) {
-$apiKey = ''; // get from https://dashboard.cohere.com/api-keys
+$apiKey = 'O56TELnKai80V3Ulm1HwzeZSbNmTbqprMuZ1HnF7'; // get from https://dashboard.cohere.com/api-keys
 $url = "https://api.cohere.ai/v2/chat";
 
 $prompt = "<<<PROMPT
@@ -185,12 +189,10 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 $responseText = json_decode($response, true);
-
 $responseMessage = $responseText['message']['content'][0]['text'];
 
 
 $data = json_decode($responseMessage, true);
-var_dump($data);
 ?>
 
 
@@ -198,38 +200,42 @@ var_dump($data);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Feedback Table</title>
 </head>
 <body>
 
 <?php
-// Group data by sentiment
+$analysis = $data['feedback_analysis'];  
 $groupedData = [];
-foreach ($data as $ticketId => $item) {
-    $sentiment = $item['Sentiment'];
+
+
+foreach ($analysis as $item) {
+    $sentiment = $item['sentiment'];
+    $ticketId  = $item['ticket_id'];
     $groupedData[$sentiment][$ticketId] = $item;
 }
 ?>
 
 <?php foreach ($groupedData as $sentiment => $tickets): ?>
     <?php
-        // Determine sentiment color class
-        $sentimentClass = '';
-
         if ($sentiment == 'Positive') {
             $sentimentClass = 'sentiment-positive';
-        } elseif ($sentiment == 'Negative' ) {
+        } elseif ($sentiment == 'Negative') {
             $sentimentClass = 'sentiment-negative';
         } else {
             $sentimentClass = 'sentiment-neutral';
         }
     ?>
-    <table>
-         <tr>
-            <th colspan="3" class='<?php echo $sentimentClass ?>'><?= htmlspecialchars($sentiment) ?></th>
+
+    <table class="sentiment-table">
+        <tr>
+            <th colspan="4" class="<?= $sentimentClass ?>">
+                <?= htmlspecialchars($sentiment) ?>
+            </th>
         </tr>
+
         <tr>
             <th>Ticket ID</th>
+            <th>Feedback</th>
             <th>Theme</th>
             <th>Suggestion</th>
         </tr>
@@ -237,11 +243,10 @@ foreach ($data as $ticketId => $item) {
         <?php foreach ($tickets as $ticketId => $item): ?>
             <tr>
                 <td><?= htmlspecialchars($ticketId) ?></td>
-                <td><?= htmlspecialchars($item['Theme']) ?></td>
-                <td><?= htmlspecialchars($item['Suggestion']) ?></td>
+                <td><?= htmlspecialchars($item['feedback']) ?></td>
+                <td><?= htmlspecialchars($item['theme']) ?></td>
+                <td><?= htmlspecialchars($item['suggestion']) ?></td>
             </tr>
         <?php endforeach; ?>
     </table>
-<?php endforeach; } ?>
-</body>
-</html>
+<?php endforeach; }?>
