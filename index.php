@@ -165,7 +165,7 @@ $prompt = "<<<PROMPT
         and may miss patterns or sentiments that could improve the user experience.
         Your task is to analyze feedback and generate insights Analyze a small set of
         user feedback (e.g., support tickets or survey responses) Parse the response into structured output: 1. Actual feedback text from the ticket 2.Sentiment: Positive / Neutral / Negative
-        3.Theme: Navigation / Form Design / Performance / Visual Design 4 .Suggestion: 'Simplify form layout and add progress indicators'.  
+        3.Theme: Navigation / Form Design / Performance / Visual Design 4 .Suggestion: 'Simplify form layout and add progress indicators'. Make sure suggestions are not empty.  
         Give me the entire output in JSON format. Do not give any other explanations.Remove the backticks and 'json' text in the output.
                  
        $feedbackText
