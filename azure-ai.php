@@ -13,7 +13,7 @@ if (file_exists(__DIR__ . '/.env')) {
 <html>
 <head>
     <title>AIccess Feedback Analyzer</title>
-    <style>
+     <style>
         h1 {
             margin-top: 40px;
             font-size: 28px;
@@ -63,22 +63,64 @@ if (file_exists(__DIR__ . '/.env')) {
             background-color: #45a049;
         }
 
-        table {
-            border-collapse: collapse;
-            width: 80%;
-            margin: 20px auto;
-            font-family: Arial, sans-serif;
+       table {
+           width: 80%;
+           border-collapse: collapse;
+           margin: 30px auto;
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 10px 12px;
-            text-align: left;
+            padding: 8px;
+            text-align: center;
+            word-wrap: break-word; /* prevent overflow text */
         }
+        /* Specific column widths */
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 10%; /* Ticket ID column */
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 35%; /* Theme column */
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 15%; /* Suggestion column */
+        }
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 40%; /* Suggestion column */
+        }
+        
         th {
-            background-color: #f2f2f2;
+            background-color: #f4f4f4;
         }
-        tr:nth-child(even) {
-            background-color: #fafafa;
+        
+        .sentiment-positive {
+            text-align: center;       /* centers the text horizontally */
+            font-size: 1.2em;         /* optional: makes it stand out */
+            font-weight: bold;        /* optional: bold text */
+            padding: 10px;     
+            background-color: #4CAF50; /* green */
+            color: white;
+        }
+        .sentiment-negative {
+            text-align: center;       /* centers the text horizontally */
+            font-size: 1.2em;         /* optional: makes it stand out */
+            font-weight: bold;        /* optional: bold text */
+            padding: 10px;     
+            background-color: #f44336; /* red */
+            color: white;
+        }
+        .sentiment-neutral {
+            text-align: center;       /* centers the text horizontally */
+            font-size: 1.2em;         /* optional: makes it stand out */
+            font-weight: bold;        /* optional: bold text */
+            padding: 10px;     
+            background-color: rgba(97, 145, 236, 1); /* yellow */
+            color: white;
         }
     </style>
 </head>
@@ -117,13 +159,13 @@ $apiKey = $_ENV['AZURE_API_KEY'] ?? getenv('AZURE_API_KEY');
 $endpoint = "https://aarif-mhygl3n5-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-5-chat/chat/completions?api-version=2025-01-01-preview";
 
 $prompt = "<<<PROMPT
-        Portal users — clinicians, administrators, and IT staff — often provide feedback via support
+       Portal users — clinicians, administrators, and IT staff — often provide feedback via support
         tickets, surveys, and in-app interactions. However, manually analyzing this feedback is time-consuming
         and may miss patterns or sentiments that could improve the user experience.
         Your task is to analyze feedback and generate insights Analyze a small set of
-        user feedback (e.g., support tickets or survey responses) Parse the response into structured output: 1.Sentiment: Positive / Neutral / Negative
-        2.Theme: Navigation / Form Design / Performance / Visual Design 3.Suggestion: 'Simplify form layout and add progress indicators'. 
-        Give me the entire output in JSON format. Do not give any other explanations.Remove the backticks and 'json' text in the output.
+        user feedback (e.g., support tickets or survey responses) Parse the response into structured output: 1. Actual feedback text from the ticket 2.Sentiment: Positive / Neutral / Negative
+        3.Theme: Navigation / Form Design / Performance / Visual Design 4 .Suggestion: provide suggestion for improvement as per feedback .  
+        Give me the entire output in JSON format and give the response as first positive then neutral then negative. Do not give any other explanations.Remove the backticks and 'json' text in the output.
                  
        $feedbackText
          PROMPT";
@@ -148,47 +190,61 @@ $options = [
 
 $context = stream_context_create($options);
 $result = file_get_contents($endpoint, false, $context);
+
 $response = '';
-//var_dump($result);die;
 
 if ($result === FALSE) {
     echo "Error calling API.";
 } else {
     $response = json_decode($result, true);
-//    var_dump(json_decode($response['choices'][0]['message']['content']), true);die;
     $responseMessage = $response['choices'][0]['message']['content'];
-//    var_dump($responseMessage);
-//    var_dump(json_decode($responseMessage, true));
-
     $data = json_decode($responseMessage, true)['feedback_analysis'];
 }
 ?>
+<?php
+$analysis = $data;  
+$groupedData = [];
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Feedback Table</title>
-</head>
-<body>
 
-<table>
-    <tr>
-        <th>Ticket ID</th>
-        <th>Sentiment</th>
-        <th>Theme</th>
-        <th>Suggestion</th>
-    </tr>
+foreach ($analysis as $item) {
+    $sentiment = $item['Sentiment'];
+    $ticketId  = $item['Ticket Id'];
+    $groupedData[$sentiment][$ticketId] = $item;
+}
+?>
 
-    <?php foreach ($data as $ticketId => $item): ?>
+<?php foreach ($groupedData as $sentiment => $tickets): ?>
+    <?php
+        if ($sentiment == 'Positive') {
+            $sentimentClass = 'sentiment-positive';
+        } elseif ($sentiment == 'Negative') {
+            $sentimentClass = 'sentiment-negative';
+        } else {
+            $sentimentClass = 'sentiment-neutral';
+        }
+    ?>
+
+    <table class="sentiment-table">
         <tr>
-            <td><?= htmlspecialchars($ticketId) ?></td>
-            <td><?= htmlspecialchars($item['Sentiment']) ?></td>
-            <td><?= htmlspecialchars($item['Theme']) ?></td>
-            <td><?= htmlspecialchars($item['Suggestion']) ?></td>
+            <th colspan="4" class="<?= $sentimentClass ?>">
+                <?= htmlspecialchars($sentiment) ?>
+            </th>
         </tr>
-    <?php endforeach; }?>
-</table>
 
-</body>
-</html>
+        <tr>
+            <th>Ticket ID</th>
+            <th>Feedback</th>
+            <th>Theme</th>
+            <th>Suggestion</th>
+        </tr>
+
+        <?php foreach ($tickets as $ticketId => $item): ?>
+            <tr>
+                <td><?= htmlspecialchars($ticketId) ?></td>
+                <td><?= htmlspecialchars($item['Feedback']) ?></td>
+                <td><?= htmlspecialchars($item['Theme']) ?></td>
+                <td><?= htmlspecialchars($item['Suggestion']) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endforeach; }?>
