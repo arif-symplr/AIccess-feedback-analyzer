@@ -170,7 +170,7 @@ $prompt = "<<<PROMPT
        $feedbackText
          PROMPT";
 
-$data = [
+$requestBody = [
         'messages' => [
                 ['role' => 'system', 'content' => 'You are a helpful assistant.'],
                 ['role' => 'user', 'content' => $prompt]
@@ -184,7 +184,7 @@ $options = [
                 'header' => "Content-Type: application/json\r\n" .
                         "api-key: $apiKey\r\n",
                 'method' => 'POST',
-                'content' => json_encode($data)
+                'content' => json_encode($requestBody)
         ]
 ];
 
@@ -198,7 +198,12 @@ if ($result === FALSE) {
 } else {
     $response = json_decode($result, true);
     $responseMessage = $response['choices'][0]['message']['content'];
-    $data = json_decode($responseMessage, true)['feedback_analysis'];
+    $responseData = json_decode($responseMessage, true);
+    if (array_key_exists('feedback_analysis', $responseData)) {
+        $data = $responseData['feedback_analysis'];
+    } else {
+        $data = $responseData;
+    }
 }
 ?>
 <?php
